@@ -41,6 +41,9 @@ void gps_app_setup_setup(uint32_t tile_num)
         switch (event)
         {
         case (LV_EVENT_CLICKED):
+            gps_config_t *gps_config = gps_get_config();
+
+            gps_save_config();
             mainbar_jump_to_tilenumber(gps_app_get_app_main_tile_num(), LV_ANIM_ON);
             break;
         }
@@ -48,7 +51,7 @@ void gps_app_setup_setup(uint32_t tile_num)
 
     lv_obj_t *exit_label = lv_label_create(exit_cont, NULL);
     lv_obj_add_style(exit_label, LV_OBJ_PART_MAIN, &gps_app_setup_style);
-    lv_label_set_text(exit_label, "gps setup");
+    lv_label_set_text(exit_label, "GPS Settings");
     lv_obj_align(exit_label, exit_btn, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 
     lv_obj_t *gps_app_foobar_switch_cont = lv_obj_create(gps_app_setup_tile, NULL);
@@ -65,6 +68,8 @@ void gps_app_setup_setup(uint32_t tile_num)
         switch (event)
         {
         case (LV_EVENT_VALUE_CHANGED):
+            gps_config_t *gps_config = gps_get_config();
+            gps_config->autoconnect = lv_switch_get_state(obj);
             Serial.printf("switch value = %d\r\n", lv_switch_get_state(obj));
             break;
         }
@@ -72,6 +77,6 @@ void gps_app_setup_setup(uint32_t tile_num)
 
     lv_obj_t *gps_app_foobar_switch_label = lv_label_create(gps_app_foobar_switch_cont, NULL);
     lv_obj_add_style(gps_app_foobar_switch_label, LV_OBJ_PART_MAIN, &gps_app_setup_style);
-    lv_label_set_text(gps_app_foobar_switch_label, "Power");
+    lv_label_set_text(gps_app_foobar_switch_label, "Auto Connect");
     lv_obj_align(gps_app_foobar_switch_label, gps_app_foobar_switch_cont, LV_ALIGN_IN_LEFT_MID, 5, 0);
 }

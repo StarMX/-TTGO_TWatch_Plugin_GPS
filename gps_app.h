@@ -18,10 +18,19 @@
 
     #include <TTGO.h>
 
+    #define GPS_JSON_CONFIG_FILE        "/gps.json"
+
+    typedef struct {
+        bool autoconnect = false;
+    } gps_config_t;
+
 //    #define EXAMPLE_WIDGET    // uncomment if an widget need
 
     void gps_app_setup( void );
     uint32_t gps_app_get_app_setup_tile_num( void );
     uint32_t gps_app_get_app_main_tile_num( void );
-
+    gps_config_t *gps_get_config( void );
+    void gps_save_config( void );
+    void gps_load_config( void );
+    
 #endif // _gps_app_H
