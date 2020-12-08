@@ -10,7 +10,6 @@
 #include "gui/app.h"
 #include "gui/widget.h"
 
-
 #include "hardware/json_psram_allocator.h"
 
 gps_config_t gps_config;
@@ -24,14 +23,9 @@ icon_t *gps_app = NULL;
 // widget icon
 icon_t *gps_widget = NULL;
 
-
 // declare you images or fonts you need
 LV_IMG_DECLARE(gps_app_64px);
 LV_IMG_DECLARE(info_1_16px);
-
-
-
-
 
 /*
  * setup routine for gps app
@@ -57,12 +51,10 @@ void gps_app_setup(void)
         {
         case (LV_EVENT_CLICKED):
             statusbar_hide(true);
-            app_hide_indicator(gps_app);
             mainbar_jump_to_tilenumber(gps_app_main_tile_num, LV_ANIM_OFF);
             break;
         }
     });
-    app_set_indicator(gps_app, ICON_INDICATOR_OK);
 
 #ifdef gps_WIDGET
 
@@ -88,7 +80,10 @@ void gps_app_setup(void)
     gps_app_setup_setup(gps_app_setup_tile_num);
 }
 
-
+void gps_app_show_indicator(bool show)
+{
+    show ? app_set_indicator(gps_app, ICON_INDICATOR_UPDATE) : app_hide_indicator(gps_app);
+}
 
 /*
  *
@@ -106,44 +101,51 @@ uint32_t gps_app_get_app_setup_tile_num(void)
     return (gps_app_setup_tile_num);
 }
 
-
-
-gps_config_t *gps_get_config( void ) {
-    return( &gps_config );
+gps_config_t *gps_get_config(void)
+{
+    return (&gps_config);
 }
 
-void gps_load_config( void ){
-        fs::File file = SPIFFS.open( GPS_JSON_CONFIG_FILE, FILE_READ );
-    if (!file) {
-        log_e("Can't open file: %s!", GPS_JSON_CONFIG_FILE );
+void gps_load_config(void)
+{
+    fs::File file = SPIFFS.open(GPS_JSON_CONFIG_FILE, FILE_READ);
+    if (!file)
+    {
+        log_e("Can't open file: %s!", GPS_JSON_CONFIG_FILE);
     }
-    else {
+    else
+    {
         int filesize = file.size();
-        SpiRamJsonDocument doc( filesize * 4 );
-        DeserializationError error = deserializeJson( doc, file );
-        if ( error ) {
-            log_e("update check deserializeJson() failed: %s", error.c_str() );
+        SpiRamJsonDocument doc(filesize * 4);
+        DeserializationError error = deserializeJson(doc, file);
+        if (error)
+        {
+            log_e("update check deserializeJson() failed: %s", error.c_str());
         }
-        else {
+        else
+        {
             // strlcpy( gps_config.string, doc["gps"]["string"], sizeof( gps_config.string ) );
-            gps_config.autoconnect = doc["gps"]["autoconnect"] | false;
-        }        
+            gps_config.nohup = doc["gps"]["nohup"] | false;
+        }
         doc.clear();
     }
     file.close();
 }
 
+void gps_save_config(void)
+{
+    fs::File file = SPIFFS.open(GPS_JSON_CONFIG_FILE, FILE_WRITE);
 
-void gps_save_config( void ) {
-    fs::File file = SPIFFS.open( GPS_JSON_CONFIG_FILE, FILE_WRITE );
-
-    if (!file) {
-        log_e("Can't open file: %s!", GPS_JSON_CONFIG_FILE );
+    if (!file)
+    {
+        log_e("Can't open file: %s!", GPS_JSON_CONFIG_FILE);
     }
-    else {
-        SpiRamJsonDocument doc( 1000 );
-        doc["gps"]["autoconnect"] = gps_config.autoconnect;
-        if ( serializeJsonPretty( doc, file ) == 0) {
+    else
+    {
+        SpiRamJsonDocument doc(1000);
+        doc["gps"]["nohup"] = gps_config.nohup;
+        if (serializeJsonPretty(doc, file) == 0)
+        {
             log_e("Failed to write config file");
         }
         doc.clear();

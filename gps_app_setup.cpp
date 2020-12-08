@@ -41,7 +41,7 @@ void gps_app_setup_setup(uint32_t tile_num)
         switch (event)
         {
         case (LV_EVENT_CLICKED):
-            gps_config_t *gps_config = gps_get_config();
+            // gps_config_t *gps_config = gps_get_config();
 
             gps_save_config();
             mainbar_jump_to_tilenumber(gps_app_get_app_main_tile_num(), LV_ANIM_ON);
@@ -69,7 +69,7 @@ void gps_app_setup_setup(uint32_t tile_num)
         {
         case (LV_EVENT_VALUE_CHANGED):
             gps_config_t *gps_config = gps_get_config();
-            gps_config->autoconnect = lv_switch_get_state(obj);
+            gps_config->nohup = lv_switch_get_state(obj);
             Serial.printf("switch value = %d\r\n", lv_switch_get_state(obj));
             break;
         }
@@ -77,6 +77,12 @@ void gps_app_setup_setup(uint32_t tile_num)
 
     lv_obj_t *gps_app_foobar_switch_label = lv_label_create(gps_app_foobar_switch_cont, NULL);
     lv_obj_add_style(gps_app_foobar_switch_label, LV_OBJ_PART_MAIN, &gps_app_setup_style);
-    lv_label_set_text(gps_app_foobar_switch_label, "Auto Connect");
+    lv_label_set_text(gps_app_foobar_switch_label, "no hang up");
     lv_obj_align(gps_app_foobar_switch_label, gps_app_foobar_switch_cont, LV_ALIGN_IN_LEFT_MID, 5, 0);
+
+    gps_config_t *gps_config = gps_get_config();
+    if (gps_config->nohup)
+        lv_switch_on(gps_app_foobar_switch, LV_ANIM_OFF);
+    else
+        lv_switch_off(gps_app_foobar_switch, LV_ANIM_OFF);
 }

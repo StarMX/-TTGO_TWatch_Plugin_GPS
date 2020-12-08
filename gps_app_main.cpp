@@ -87,7 +87,7 @@ void gps_app_main_setup(uint32_t tile_num)
         }
     });
 
-    lv_style_set_text_opa(&gps_app_main_style, LV_OBJ_PART_MAIN, LV_OPA_70);
+    lv_style_set_text_opa(&gps_app_main_style, LV_OBJ_PART_MAIN, LV_OPA_20);
     lv_style_set_text_font(&gps_app_main_style, LV_STATE_DEFAULT, &Ubuntu_72px);
     lv_obj_t *app_label = lv_label_create(gps_app_main_tile, NULL);
     lv_label_set_text(app_label, "GPS");
@@ -98,7 +98,7 @@ void gps_app_main_setup(uint32_t tile_num)
     //
     lv_style_copy(&datestyle, &gps_app_main_style);
     lv_style_set_text_font(&datestyle, LV_STATE_DEFAULT, &Ubuntu_16px);
-
+    lv_style_set_text_opa(&datestyle, LV_OBJ_PART_MAIN, LV_OPA_COVER);
     // lv_obj_t *gps_location_cont = lv_obj_create(gps_app_main_tile, NULL);
     // lv_obj_set_size(gps_location_cont, lv_disp_get_hor_res(NULL), 25);
     // lv_obj_add_style(gps_location_cont, LV_OBJ_PART_MAIN, &datestyle);
@@ -147,7 +147,7 @@ void gps_app_main_setup(uint32_t tile_num)
     lv_obj_align(gps_satellites_cont, gps_longitude_cont, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
     lv_obj_t *gps_satellites_label = lv_label_create(gps_satellites_cont, NULL);
     lv_obj_add_style(gps_satellites_label, LV_OBJ_PART_MAIN, &datestyle);
-    lv_label_set_text(gps_satellites_label, "Satellites");
+    lv_label_set_text(gps_satellites_label, "satellite");
     lv_obj_align(gps_satellites_label, gps_satellites_cont, LV_ALIGN_IN_LEFT_MID, 5, 0);
     gps_satellites_value = lv_label_create(gps_satellites_cont, NULL);
     lv_obj_add_style(gps_satellites_value, LV_OBJ_PART_MAIN, &datestyle);
@@ -175,7 +175,7 @@ void gps_app_main_setup(uint32_t tile_num)
     lv_obj_align(gps_date_cont, gps_speed_cont, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
     lv_obj_t *gps_date_label = lv_label_create(gps_date_cont, NULL);
     lv_obj_add_style(gps_date_label, LV_OBJ_PART_MAIN, &datestyle);
-    lv_label_set_text(gps_date_label, "date");
+    lv_label_set_text(gps_date_label, "datetime");
     lv_obj_align(gps_date_label, gps_date_cont, LV_ALIGN_IN_LEFT_MID, 5, 0);
     gps_date_value = lv_label_create(gps_date_cont, NULL);
     lv_obj_add_style(gps_date_value, LV_OBJ_PART_MAIN, &datestyle);
@@ -190,10 +190,15 @@ void gps_app_main_setup(uint32_t tile_num)
         _gps_app_task = lv_task_create(gps_app_task, 1000, LV_TASK_PRIO_MID, NULL);
     });
     mainbar_add_tile_hibernate_cb(tile_num, [](void) {
-        //lv_label_set_text(gps_btn_label, "GPS Stop");
-        log_i("poweroff");
-        TTGOClass *ttgo = TTGOClass::getWatch();
-        ttgo->enableLDO3(false);
+        if (!gps_get_config()->nohup)
+        {
+            log_i("poweroff");
+            TTGOClass *ttgo = TTGOClass::getWatch();
+            ttgo->enableLDO3(false);
+            gps_app_show_indicator(false);
+        }
+        else
+            gps_app_show_indicator();
         lv_task_del(_gps_app_task);
     });
     // create an task that runs every secound
@@ -210,7 +215,7 @@ void gps_app_task(lv_task_t *task)
         char gps_value_temp[30] = "";
         if (gps->satellites.isValid() /* || gps->satellites.isUpdated()*/)
         {
-            snprintf(gps_value_temp, sizeof(gps_value_temp), "%d|%d", gps->satellites.age(), gps->satellites.value());
+            snprintf(gps_value_temp, sizeof(gps_value_temp), "%d", gps->satellites.value());
             lv_label_set_text(gps_satellites_value, gps_value_temp);
             lv_obj_align(gps_satellites_value, lv_obj_get_parent(gps_satellites_value), LV_ALIGN_IN_RIGHT_MID, -5, 0);
             log_i("衛星數 -> %d|%d", gps->satellites.age(), gps->satellites.value());
@@ -228,7 +233,10 @@ void gps_app_task(lv_task_t *task)
         log_i("lat: %.2f lng: %.2f", gps->location.lat(), gps->location.lng());
         if (gps->date.isValid() /* || gps->date.isUpdated()*/)
         {
-            snprintf(gps_value_temp, sizeof(gps_value_temp), "%d-%2d-%2d", gps->date.year(), gps->date.month(), gps->date.day());
+            if (gps->time.isValid())
+                snprintf(gps_value_temp, sizeof(gps_value_temp), "%d-%02d-%02d %02d:%02d:%02d", gps->date.year(), gps->date.month(), gps->date.day(), gps->time.hour(), gps->time.minute(), gps->time.second());
+            else
+                snprintf(gps_value_temp, sizeof(gps_value_temp), "%d-%02d-%02d", gps->date.year(), gps->date.month(), gps->date.day());
             lv_label_set_text(gps_date_value, gps_value_temp);
             lv_obj_align(gps_date_value, lv_obj_get_parent(gps_date_value), LV_ALIGN_IN_RIGHT_MID, -5, 0);
             log_i("時間: %s", gps_value_temp);
@@ -239,7 +247,7 @@ void gps_app_task(lv_task_t *task)
         }
         if (gps->speed.isValid() /* && gps->speed.isUpdated()*/)
         {
-            snprintf(gps_value_temp, sizeof(gps_value_temp), "%.2f", gps->speed.kmph());
+            snprintf(gps_value_temp, sizeof(gps_value_temp), "%.2f kmp/h", gps->speed.kmph());
             lv_label_set_text(gps_speed_value, gps_value_temp);
             lv_obj_align(gps_speed_value, lv_obj_get_parent(gps_speed_value), LV_ALIGN_IN_RIGHT_MID, -5, 0);
             log_i("速度: %s", gps_value_temp);
