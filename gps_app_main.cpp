@@ -9,6 +9,8 @@
 #include "gui/mainbar/mainbar.h"
 #include "gui/statusbar.h"
 
+#include "hardware/powermgm.h"
+
 lv_obj_t *gps_app_main_tile = NULL;
 lv_style_t gps_app_main_style;
 
@@ -201,6 +203,27 @@ void gps_app_main_setup(uint32_t tile_num)
             gps_app_show_indicator();
         lv_task_del(_gps_app_task);
     });
+
+    powermgm_register_loop_cb(
+        POWERMGM_WAKEUP | POWERMGM_SILENCE_WAKEUP | POWERMGM_STANDBY, [](EventBits_t event, void *arg) {
+            if (gps_get_config()->nohup)
+            {
+                TTGOClass *ttgo = TTGOClass::getWatch();
+                switch (event)
+                {
+                case POWERMGM_STANDBY:
+                    ttgo->enableLDO3(false);
+                    break;
+                case POWERMGM_SILENCE_WAKEUP:
+                case POWERMGM_WAKEUP:
+                    ttgo->enableLDO3();
+                    break;
+                }
+            }
+            return (true);
+        },
+        "gps");
+
     // create an task that runs every secound
     // _gps_app_task = lv_task_create(gps_app_task, 1000, LV_TASK_PRIO_MID, NULL);
 }
