@@ -185,18 +185,15 @@ void gps_app_main_setup(uint32_t tile_num)
     lv_obj_align(gps_date_value, gps_date_cont, LV_ALIGN_IN_RIGHT_MID, -5, 0);
 
     mainbar_add_tile_activate_cb(tile_num, [](void) {
-        //lv_label_set_text(gps_btn_label, "GPS Start");
-        TTGOClass *ttgo = TTGOClass::getWatch();
-        log_i("poweron");
-        ttgo->enableLDO3();
+        // TTGOClass *ttgo = TTGOClass::getWatch();
+        // ttgo->enableLDO3();
         _gps_app_task = lv_task_create(gps_app_task, 1000, LV_TASK_PRIO_MID, NULL);
     });
     mainbar_add_tile_hibernate_cb(tile_num, [](void) {
         if (!gps_get_config()->nohup)
         {
-            log_i("poweroff");
-            TTGOClass *ttgo = TTGOClass::getWatch();
-            ttgo->enableLDO3(false);
+            // TTGOClass *ttgo = TTGOClass::getWatch();
+            // ttgo->enableLDO3(false);
             gps_app_show_indicator(false);
         }
         else
@@ -204,6 +201,30 @@ void gps_app_main_setup(uint32_t tile_num)
         lv_task_del(_gps_app_task);
     });
 
+
+#ifndef ENABLE_SOUND
+    powermgm_register_cb(
+        POWERMGM_SILENCE_WAKEUP | POWERMGM_STANDBY | POWERMGM_WAKEUP, [](EventBits_t event, void *arg) {
+            if (gps_get_config()->nohup)
+            {
+                TTGOClass *ttgo = TTGOClass::getWatch();
+                switch (event)
+                {
+                case POWERMGM_STANDBY:
+                    ttgo->enableLDO3(false);
+                    break;
+                case POWERMGM_SILENCE_WAKEUP:
+                case POWERMGM_WAKEUP:
+                    ttgo->enableLDO3();
+                    break;
+                }
+            }
+            return (true);
+        },
+        "gps");
+#endif
+
+#ifndef ENABLE_SOUND
     powermgm_register_loop_cb(
         POWERMGM_WAKEUP | POWERMGM_SILENCE_WAKEUP | POWERMGM_STANDBY, [](EventBits_t event, void *arg) {
             if (gps_get_config()->nohup)
@@ -222,8 +243,8 @@ void gps_app_main_setup(uint32_t tile_num)
             }
             return (true);
         },
-        "gps");
-
+        "gps loop");
+#endif
     // create an task that runs every secound
     // _gps_app_task = lv_task_create(gps_app_task, 1000, LV_TASK_PRIO_MID, NULL);
 }
@@ -234,7 +255,7 @@ void gps_app_task(lv_task_t *task)
     gps = ttgo->gps;
     if (ttgo->gpsHandler())
     {
-        lv_label_set_text(gps_btn_label, LV_SYMBOL_GPS);
+        
         char gps_value_temp[30] = "";
         if (gps->satellites.isValid() /* || gps->satellites.isUpdated()*/)
         {
@@ -252,6 +273,9 @@ void gps_app_task(lv_task_t *task)
             snprintf(gps_value_temp, sizeof(gps_value_temp), "%.4f", gps->location.lng());
             lv_label_set_text(gps_longitude_value, gps_value_temp);
             lv_obj_align(gps_longitude_value, lv_obj_get_parent(gps_longitude_value), LV_ALIGN_IN_RIGHT_MID, -5, 0);
+            lv_label_set_text(gps_btn_label, LV_SYMBOL_GPS);
+        }else{
+            lv_label_set_text(gps_btn_label, LV_SYMBOL_REFRESH);
         }
         log_i("lat: %.2f lng: %.2f", gps->location.lat(), gps->location.lng());
         if (gps->date.isValid() /* || gps->date.isUpdated()*/)
